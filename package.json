@@ -2,8 +2,13 @@
   "name": "monad-ext",
   "module": "index.ts",
   "type": "module",
+  "scripts": {
+    "test": "bun test"
+  },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "prool": "^0.2.2",
+    "viem": "^2.45.1"
   },
   "peerDependencies": {
     "typescript": "^5"
