@@ -1,10 +1,10 @@
 {
   "name": "@monad-crypto/viem",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "TypeScript Interface for Monad",
   "repository": {
     "type": "git",
-    "url": "https://github.com/monad-crypto/monad-ts.git",
+    "url": "git+https://github.com/monad-crypto/monad-ts.git",
     "directory": "packages/viem"
   },
   "publishConfig": {
@@ -43,6 +43,6 @@
     }
   },
   "devDependencies": {
-    "viem": "2.45.1"
+    "viem": "2.47.0"
   }
 }

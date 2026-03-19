@@ -8,19 +8,24 @@ on:
 
 concurrency: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
 
-permissions:
-  contents: write
-  pull-requests: write
-  id-token: write
-
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
           # This fetches the entire Git history so that Changesets can generate changelogs with the correct commits.
           fetch-depth: 0
+
+      - uses: actions/setup-node@v4 
+        with:
+          node-version: 24.8
+          npm-version: 11.6
+          registry-url: 'https://registry.npmjs.org'
 
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
@@ -28,12 +33,12 @@ jobs:
 
       - name: Create release pull request or publish to npm
         id: changesets
-        uses: changesets/action@v1.4.5
+        uses: changesets/action@v1.7
         with:
           commitMode: github-api 
           title: "chore: version packages"
           commit: "chore: version packages"
           version: bun run changeset version
-          publish: bun run build && bun run changeset publish
+          publish: bun run changeset publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
