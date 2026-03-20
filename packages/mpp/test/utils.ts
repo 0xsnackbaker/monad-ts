@@ -1,6 +1,6 @@
 import { Challenge } from "mppx";
 import type { Address } from "viem";
-import { createClient, http } from "viem";
+import { createClient, encodeFunctionData, erc20Abi, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import * as defaults from "../src/defaults.js";
 import * as Methods from "../src/Methods.js";
@@ -12,8 +12,18 @@ export const testChainId = defaults.chainId.mainnet;
 /** Default test token (USDC). */
 export const token: Address = defaults.tokens.usdc;
 
+/** A non-ERC-3009 token address for testing rejection paths. */
+export const NON_ERC3009_TOKEN: Address =
+  "0x0000000000000000000000000000000000000001";
+
 /** USDC whale on Monad mainnet at the fork block. */
 export const WHALE: Address = "0xfc08DB693D20F8F5dE32aC93816fA0ec2d6a221D";
+
+/** Dummy 65-byte signature (v=27, r=0x00..., s=0x00...). */
+export const DUMMY_SIGNATURE = `0x${"00".repeat(32)}${"00".repeat(32)}1b`;
+
+/** Zero nonce for authorization payloads. */
+export const ZERO_NONCE = `0x${"00".repeat(32)}`;
 
 /**
  * Test accounts.
@@ -61,12 +71,13 @@ export async function fundUSDC(
   to: Address,
   amount: bigint,
 ) {
-  const { encodeFunctionData, erc20Abi } = await import("viem");
-  await setBalance(client, WHALE, 10n ** 18n);
-  await client.request({
-    method: "anvil_impersonateAccount" as never,
-    params: [WHALE] as never,
-  });
+  await Promise.all([
+    setBalance(client, WHALE, 10n ** 18n),
+    client.request({
+      method: "anvil_impersonateAccount" as never,
+      params: [WHALE] as never,
+    }),
+  ]);
   await client.request({
     method: "eth_sendTransaction" as never,
     params: [
@@ -85,6 +96,29 @@ export async function fundUSDC(
     method: "anvil_stopImpersonatingAccount" as never,
     params: [WHALE] as never,
   });
+}
+
+/** Builds a dummy authorization payload for testing verification logic. */
+export function makeAuthorizationPayload(
+  overrides: {
+    from?: string;
+    to?: string;
+    value?: string;
+    validBefore?: string;
+    signature?: string;
+  } = {},
+) {
+  return {
+    type: "authorization" as const,
+    from: overrides.from ?? accounts.payer.address,
+    to: overrides.to ?? accounts.server.address,
+    value: overrides.value ?? "1000000",
+    validAfter: "0",
+    validBefore:
+      overrides.validBefore ?? String(Math.floor(Date.now() / 1000) + 3600),
+    nonce: ZERO_NONCE,
+    signature: overrides.signature ?? DUMMY_SIGNATURE,
+  };
 }
 
 /** Creates a challenge for testing. */

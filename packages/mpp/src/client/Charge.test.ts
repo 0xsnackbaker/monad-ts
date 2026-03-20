@@ -4,6 +4,7 @@ import {
   createTestClient,
   fundUSDC,
   makeChallenge,
+  NON_ERC3009_TOKEN,
   setBalance,
   token,
 } from "../../test/utils.js";
@@ -26,14 +27,13 @@ test("client charge throws when no account provided", async () => {
 });
 
 test("client charge throws when pull mode used with non-ERC-3009 token", async () => {
-  const nonErc3009Token = "0x0000000000000000000000000000000000000001";
   const client = createTestClient();
   const method = charge({
     account: accounts.payer,
     mode: "pull",
     getClient: () => client,
   });
-  const challenge = makeChallenge({ currency: nonErc3009Token });
+  const challenge = makeChallenge({ currency: NON_ERC3009_TOKEN });
   await expect(method.createCredential({ challenge } as never)).rejects.toThrow(
     "does not support ERC-3009",
   );
@@ -44,16 +44,16 @@ test("USDC is in the ERC-3009 allowlist", () => {
 });
 
 test("unknown tokens are not in the ERC-3009 allowlist", () => {
-  expect(
-    "0x0000000000000000000000000000000000000001" in defaults.erc3009Tokens,
-  ).toBe(false);
+  expect(NON_ERC3009_TOKEN in defaults.erc3009Tokens).toBe(false);
 });
 
 test("client charge defaults to push mode for json-rpc accounts", async () => {
   const client = createTestClient();
 
-  await fundUSDC(client, accounts.payer.address, 10_000_000n);
-  await setBalance(client, accounts.payer.address, 10n ** 18n);
+  await Promise.all([
+    fundUSDC(client, accounts.payer.address, 10_000_000n),
+    setBalance(client, accounts.payer.address, 10n ** 18n),
+  ]);
 
   // Impersonate so anvil can sign on behalf of the account
   await client.request({

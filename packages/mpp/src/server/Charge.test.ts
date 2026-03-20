@@ -1,15 +1,18 @@
 import { expect, test } from "bun:test";
 import { Credential } from "mppx";
+import { createClient, http } from "viem";
+import { RPC_URL } from "../../test/setup.js";
 import {
   accounts,
   createTestClient,
   fundUSDC,
+  makeAuthorizationPayload,
   makeChallenge,
+  NON_ERC3009_TOKEN,
   setBalance,
   testChainId,
   token,
 } from "../../test/utils.js";
-import { RPC_URL } from "../../test/setup.js";
 import { charge as clientCharge } from "../client/Charge.js";
 import * as defaults from "../defaults.js";
 import { charge } from "./Charge.js";
@@ -38,7 +41,7 @@ test("server charge allows non-ERC-3009 token without account", () => {
   const client = createTestClient();
   const method = charge({
     recipient: accounts.recipient.address,
-    currency: "0x0000000000000000000000000000000000000001",
+    currency: NON_ERC3009_TOKEN,
     getClient: () => client,
   });
   expect(method).toBeDefined();
@@ -72,7 +75,7 @@ test("server charge rejects authorization without server account", async () => {
   const client = createTestClient();
   const method = charge({
     recipient: accounts.recipient.address,
-    currency: "0x0000000000000000000000000000000000000001",
+    currency: NON_ERC3009_TOKEN,
     getClient: () => client,
   });
 
@@ -82,16 +85,7 @@ test("server charge rejects authorization without server account", async () => {
     method.verify({
       credential: {
         challenge,
-        payload: {
-          type: "authorization",
-          from: accounts.payer.address,
-          to: accounts.recipient.address,
-          value: "1000000",
-          validAfter: "0",
-          validBefore: String(Math.floor(Date.now() / 1000) + 3600),
-          nonce: `0x${"00".repeat(32)}`,
-          signature: `0x${"00".repeat(32)}${"00".repeat(32)}1b`,
-        },
+        payload: makeAuthorizationPayload({ to: accounts.recipient.address }),
       },
       request: { ...challenge.request, chainId: testChainId },
     }),
@@ -112,16 +106,9 @@ test("server charge rejects authorization with mismatched recipient", async () =
     method.verify({
       credential: {
         challenge,
-        payload: {
-          type: "authorization",
-          from: accounts.payer.address,
+        payload: makeAuthorizationPayload({
           to: accounts.payer.address, // wrong — should be server
-          value: "1000000",
-          validAfter: "0",
-          validBefore: String(Math.floor(Date.now() / 1000) + 3600),
-          nonce: `0x${"00".repeat(32)}`,
-          signature: `0x${"00".repeat(32)}${"00".repeat(32)}1b`,
-        },
+        }),
       },
       request: { ...challenge.request, chainId: testChainId },
     }),
@@ -142,16 +129,7 @@ test("server charge rejects authorization with mismatched amount", async () => {
     method.verify({
       credential: {
         challenge,
-        payload: {
-          type: "authorization",
-          from: accounts.payer.address,
-          to: accounts.server.address,
-          value: "999999", // wrong amount
-          validAfter: "0",
-          validBefore: String(Math.floor(Date.now() / 1000) + 3600),
-          nonce: `0x${"00".repeat(32)}`,
-          signature: `0x${"00".repeat(32)}${"00".repeat(32)}1b`,
-        },
+        payload: makeAuthorizationPayload({ value: "999999" }),
       },
       request: { ...challenge.request, chainId: testChainId },
     }),
@@ -172,16 +150,7 @@ test("server charge rejects expired authorization", async () => {
     method.verify({
       credential: {
         challenge,
-        payload: {
-          type: "authorization",
-          from: accounts.payer.address,
-          to: accounts.server.address,
-          value: "1000000",
-          validAfter: "0",
-          validBefore: "1000", // expired
-          nonce: `0x${"00".repeat(32)}`,
-          signature: `0x${"00".repeat(32)}${"00".repeat(32)}1b`,
-        },
+        payload: makeAuthorizationPayload({ validBefore: "1000" }),
       },
       request: { ...challenge.request, chainId: testChainId },
     }),
@@ -204,16 +173,7 @@ test("server charge rejects when server account does not match recipient", async
     method.verify({
       credential: {
         challenge,
-        payload: {
-          type: "authorization",
-          from: accounts.payer.address,
-          to: accounts.recipient.address,
-          value: "1000000",
-          validAfter: "0",
-          validBefore: String(Math.floor(Date.now() / 1000) + 3600),
-          nonce: `0x${"00".repeat(32)}`,
-          signature: `0x${"00".repeat(32)}${"00".repeat(32)}1b`,
-        },
+        payload: makeAuthorizationPayload({ to: accounts.recipient.address }),
       },
       request: { ...challenge.request, chainId: testChainId },
     }),
@@ -228,7 +188,9 @@ test("server charge request hook resolves chainId from client", async () => {
     getClient: () => client,
   });
 
-  const requestHook = method.request as (params: never) => Promise<{ chainId: number }>;
+  const requestHook = method.request as (
+    params: never,
+  ) => Promise<{ chainId: number }>;
   const result = await requestHook({
     request: {
       amount: "1000000",
@@ -246,13 +208,14 @@ test("server charge request hook uses testnet chainId when configured", async ()
     account: accounts.recipient,
     testnet: true,
     getClient: ({ chainId }) => {
-      const { createClient, http } = require("viem") as typeof import("viem");
       const id = chainId ?? defaults.chainId.testnet;
       return createClient({ chain: { id } as never, transport: http(RPC_URL) });
     },
   });
 
-  const requestHook = method.request as (params: never) => Promise<{ chainId: number }>;
+  const requestHook = method.request as (
+    params: never,
+  ) => Promise<{ chainId: number }>;
   const result = await requestHook({
     request: {
       amount: "1000000",
@@ -272,7 +235,9 @@ test("server charge request hook uses explicit chainId from request", async () =
     getClient: () => client,
   });
 
-  const requestHook = method.request as (params: never) => Promise<{ chainId: number }>;
+  const requestHook = method.request as (
+    params: never,
+  ) => Promise<{ chainId: number }>;
   const result = await requestHook({
     request: {
       amount: "1000000",
@@ -333,8 +298,10 @@ test("defaults ERC-3009 ABI has transferWithAuthorization", () => {
 test("server charge verifies a push (hash) credential end-to-end", async () => {
   const client = createTestClient();
 
-  await fundUSDC(client, accounts.payer.address, 10_000_000n);
-  await setBalance(client, accounts.payer.address, 10n ** 18n);
+  await Promise.all([
+    fundUSDC(client, accounts.payer.address, 10_000_000n),
+    setBalance(client, accounts.payer.address, 10n ** 18n),
+  ]);
 
   const serverMethod = charge({
     recipient: accounts.recipient.address,
@@ -366,8 +333,10 @@ test("server charge verifies a push (hash) credential end-to-end", async () => {
 test("server charge verifies a pull (authorization) credential end-to-end", async () => {
   const client = createTestClient();
 
-  await fundUSDC(client, accounts.payer.address, 10_000_000n);
-  await setBalance(client, accounts.server.address, 10n ** 18n);
+  await Promise.all([
+    fundUSDC(client, accounts.payer.address, 10_000_000n),
+    setBalance(client, accounts.server.address, 10n ** 18n),
+  ]);
 
   const serverMethod = charge({
     recipient: accounts.server.address,
