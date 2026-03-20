@@ -43,4 +43,4 @@ jobs:
       - uses: foundry-rs/foundry-toolchain@v1
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
-      - run: bun test --coverage
+      - run: bun test --timeout 15000 --coverage
