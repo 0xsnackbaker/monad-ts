@@ -1,7 +1,7 @@
 import { afterAll, beforeAll } from "bun:test";
 import { Instance, Server } from "prool";
 
-const FORK_URL = "https://rpc2.monad.xyz";
+const FORK_URL = "https://rpc-mainnet.monadinfra.com";
 export const FORK_BLOCK_NUMBER = 54_000_000n;
 export const RPC_URL = `http://localhost:8545/1`;
 
