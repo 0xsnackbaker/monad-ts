@@ -131,6 +131,13 @@ export function charge(parameters: charge.Parameters = {}): Method.AnyServer {
       switch (payload.type) {
         case "hash": {
           const hash = payload.hash as `0x${string}`;
+
+          const sender = extractDidAddress(credential.source);
+          if (!sender)
+            throw new Error(
+              "Hash credential is missing a valid `source` DID — cannot verify sender.",
+            );
+
           const receipt = await getTransactionReceipt(client, { hash });
 
           const transferLogs = parseEventLogs({
@@ -142,6 +149,7 @@ export function charge(parameters: charge.Parameters = {}): Method.AnyServer {
           const match = transferLogs.find(
             (log) =>
               isAddressEqual(log.address, challengeCurrency) &&
+              isAddressEqual(log.args.from, sender) &&
               isAddressEqual(log.args.to, challengeRecipient) &&
               log.args.value.toString() === challengeAmount,
           );
@@ -150,6 +158,7 @@ export function charge(parameters: charge.Parameters = {}): Method.AnyServer {
             throw new MismatchError(
               "Payment verification failed: no matching ERC-20 transfer found.",
               {
+                sender,
                 amount: challengeAmount,
                 currency: challengeCurrency,
                 recipient: challengeRecipient,
@@ -388,6 +397,17 @@ function toReceipt(receipt: TransactionReceipt) {
     timestamp: new Date().toISOString(),
     reference: transactionHash,
   };
+}
+
+/**
+ * Extracts an Ethereum address from a `did:pkh:eip155:<chainId>:<address>` DID.
+ * Returns `undefined` if the source is missing or malformed.
+ * @internal
+ */
+function extractDidAddress(source: string | undefined): Address | undefined {
+  if (!source) return undefined;
+  const match = /^did:pkh:eip155:\d+:(0x[0-9a-fA-F]{40})$/.exec(source);
+  return match ? (match[1] as Address) : undefined;
 }
 
 /** @internal */
