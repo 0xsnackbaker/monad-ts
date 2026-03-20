@@ -63,7 +63,7 @@ export function charge(parameters: charge.Parameters = {}) {
         (account.type === "json-rpc" ? "push" : "pull");
 
       const { request } = challenge;
-      const amount = BigInt(request.amount as string);
+      const amount = BigInt(request.amount);
       const currency = request.currency as Address;
       const recipient = request.recipient as Address;
 
@@ -92,13 +92,13 @@ export function charge(parameters: charge.Parameters = {}) {
         const signature = await signTypedData(client, {
           account,
           domain: {
-            name: tokenName as string,
-            version: tokenVersion as string,
+            name: tokenName,
+            version: tokenVersion,
             chainId: resolvedChainId,
             verifyingContract: currency,
           },
           types: {
-            TransferWithAuthorization: [
+            ReceiveWithAuthorization: [
               { name: "from", type: "address" },
               { name: "to", type: "address" },
               { name: "value", type: "uint256" },
@@ -107,7 +107,7 @@ export function charge(parameters: charge.Parameters = {}) {
               { name: "nonce", type: "bytes32" },
             ],
           },
-          primaryType: "TransferWithAuthorization",
+          primaryType: "ReceiveWithAuthorization",
           message: {
             from: account.address,
             to: recipient,
@@ -116,7 +116,7 @@ export function charge(parameters: charge.Parameters = {}) {
             validBefore,
             nonce,
           },
-        } as never);
+        });
 
         return Credential.serialize({
           challenge,
@@ -144,11 +144,11 @@ export function charge(parameters: charge.Parameters = {}) {
             functionName: "transfer",
             args: [recipient, amount],
           }),
-        } as never);
+        });
         const hash = receipt.transactionHash;
         return Credential.serialize({
           challenge,
-          payload: { hash, type: "hash" as const },
+          payload: { hash, type: "hash" },
           source: `did:pkh:eip155:${chainId ?? client.chain?.id}:${account.address}`,
         });
       }

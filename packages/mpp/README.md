@@ -79,6 +79,14 @@ const mppx = Mppx.create({
 | `account` | `Account \| Address` | &mdash; | Server wallet for broadcasting `receiveWithAuthorization` (required when `serverPaysGas` is `true`) |
 | `serverPaysGas` | `boolean` | `false` | Server pays gas via ERC-3009. Requires an ERC-3009 token (e.g. USDC) and `account` | -->
 
+## Example
+
+See [`example/`](./example) for a complete Hono server and client demo using the Monad payment method on testnet.
+
+## Specification
+
+The formal protocol specification is available at [`spec/draft-monad-charge-00.md`](./spec/draft-monad-charge-00.md).
+
 ## How It Works
 
 1. Server issues a `402 Payment Required` challenge via `mppx` with method `monad` and intent `charge`.

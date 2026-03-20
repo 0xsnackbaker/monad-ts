@@ -61,6 +61,7 @@
   "devDependencies": {
     "hono": "4.12.8",
     "mppx": "0.4.7",
+    "prool": "0.2.3",
     "viem": "2.46.2"
   }
 }
