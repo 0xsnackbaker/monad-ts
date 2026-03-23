@@ -81,7 +81,20 @@ const mppx = Mppx.create({
 
 ## Example
 
-See [`example/`](./example) for a complete Hono server and client demo using the Monad payment method on testnet.
+A complete Hono server and client demo is in [`example/`](./example).
+
+```bash
+# 1. Copy the env file and fill in your private keys
+cp example/.env.example example/.env
+
+# 2. Start the server
+bun run example/server.ts
+
+# 3. In another terminal, run the client
+bun run example/client.ts
+```
+
+The server account receives payments and broadcasts `receiveWithAuthorization` transactions, so it must be funded with MON for gas. The client account must be funded with USDC.
 
 ## Specification
 

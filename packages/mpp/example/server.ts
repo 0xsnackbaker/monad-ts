@@ -12,7 +12,6 @@ const mppx = Mppx.create({
     monad({
       recipient: account.address,
       account,
-      testnet: true,
     }),
   ],
 });
