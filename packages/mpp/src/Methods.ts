@@ -11,7 +11,6 @@ export const charge = Method.from({
     credential: {
       payload: z.discriminatedUnion("type", [
         z.object({ hash: z.hash(), type: z.literal("hash") }),
-        z.object({ signature: z.signature(), type: z.literal("transaction") }),
         z.object({
           type: z.literal("authorization"),
           from: z.string(),

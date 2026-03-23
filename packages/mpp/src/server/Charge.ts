@@ -1,35 +1,21 @@
 import { Method } from "mppx";
 import type { Account, Address, Chain, Client, Hash } from "viem";
 import {
-  decodeFunctionData,
   encodeFunctionData,
   erc20Abi,
-  getAbiItem,
   isAddressEqual,
   parseEventLogs,
-  parseTransaction,
   type TransactionReceipt,
-  toFunctionSelector,
 } from "viem";
 import { parseAccount } from "viem/accounts";
 import {
   getTransactionReceipt,
-  sendRawTransaction,
-  sendRawTransactionSync,
   sendTransaction,
   sendTransactionSync,
 } from "viem/actions";
 import * as defaults from "../defaults.js";
 import * as Methods from "../Methods.js";
 import type { MaybePromise } from "../types.js";
-
-/** Function selector for ERC-20 `transfer(address,uint256)`. */
-const transferSelector = toFunctionSelector(
-  getAbiItem({
-    abi: erc20Abi,
-    name: "transfer",
-  }),
-);
 
 /**
  * Creates a Monad charge method intent for usage on the server.
@@ -166,68 +152,6 @@ export function charge(parameters: charge.Parameters = {}): Method.AnyServer {
             );
 
           return toReceipt(receipt);
-        }
-
-        case "transaction": {
-          const serializedTransaction = payload.signature as `0x${string}`;
-          const transaction = parseTransaction(serializedTransaction);
-
-          const to = transaction.to;
-          const data = transaction.data;
-
-          if (!to || !isAddressEqual(to, challengeCurrency))
-            throw new MismatchError(
-              "Invalid transaction: target is not the expected token contract.",
-              { currency: challengeCurrency, actual: to ?? "undefined" },
-            );
-
-          if (!data || !data.startsWith(transferSelector))
-            throw new MismatchError(
-              "Invalid transaction: not an ERC-20 transfer call.",
-              { currency: challengeCurrency },
-            );
-
-          try {
-            const { args } = decodeFunctionData({ abi: erc20Abi, data });
-            const [transferTo, transferAmount] = args as [Address, bigint];
-            if (
-              !isAddressEqual(transferTo, challengeRecipient) ||
-              transferAmount.toString() !== challengeAmount
-            )
-              throw new MismatchError(
-                "Invalid transaction: transfer parameters do not match challenge.",
-                {
-                  amount: challengeAmount,
-                  currency: challengeCurrency,
-                  recipient: challengeRecipient,
-                },
-              );
-          } catch (error) {
-            if (error instanceof MismatchError) throw error;
-            throw new MismatchError(
-              "Invalid transaction: could not decode ERC-20 transfer call.",
-              { currency: challengeCurrency },
-            );
-          }
-
-          let hash: Hash;
-          if (waitForConfirmation) {
-            const receipt = await sendRawTransactionSync(client, {
-              serializedTransaction,
-            });
-            hash = receipt.transactionHash;
-            return toReceipt(receipt);
-          } else {
-            hash = await sendRawTransaction(client, {
-              serializedTransaction,
-            });
-            return {
-              method: "monad" as const,
-              status: "success" as const,
-              timestamp: new Date().toISOString(),
-              reference: hash,
-            };
-          }
         }
 
         case "authorization": {

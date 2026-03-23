@@ -9,18 +9,10 @@ submissiontype: IETF
 consensus: true
 
 author:
-  - name: Jake Moxey
-    ins: J. Moxey
-    email: jake@tempo.xyz
-    organization: Tempo Labs
-  - name: Brendan Ryan
-    ins: B. Ryan
-    email: brendan@tempo.xyz
-    organization: Tempo Labs
-  - name: Tom Meagher
-    ins: T. Meagher
-    email: tom@tempo.xyz
-    organization: Tempo Labs
+  - name: Kyle Scott
+    ins: K. Scott
+    email: kscott@monad.foundation
+    organization: Monad Foundation
 
 normative:
   RFC2119:
@@ -249,38 +241,6 @@ the transaction hash for the server to verify onchain.
 }
 ~~~
 
-## Transaction Payload (type="transaction")
-
-When `type` is `"transaction"`, `signature` contains the complete signed
-EVM transaction serialized and hex-encoded with `0x` prefix. The
-transaction MUST contain an ERC-20 `transfer(recipient, amount)` call on
-the specified token.
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `signature` | string | REQUIRED | Hex-encoded serialized signed transaction |
-| `type` | string | REQUIRED | `"transaction"` |
-
-**Example:**
-
-~~~json
-{
-  "challenge": {
-    "id": "kM9xPqWvT2nJrHsY4aDfEb",
-    "realm": "api.example.com",
-    "method": "monad",
-    "intent": "charge",
-    "request": "eyJ...",
-    "expires": "2025-02-05T12:05:00Z"
-  },
-  "payload": {
-    "signature": "0x02f901...signed transaction bytes...",
-    "type": "transaction"
-  },
-  "source": "did:pkh:eip155:143:0x1234567890abcdef1234567890abcdef12345678"
-}
-~~~
-
 ## Authorization Payload (type="authorization")
 
 When `type` is `"authorization"`, the client has signed an ERC-3009
@@ -433,40 +393,6 @@ The typed data uses the `TransferWithAuthorization` primary type:
 TransferWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)
 ~~~
 
-## Transaction Settlement (type="transaction")
-
-For credentials with `type="transaction"`, the server receives a
-pre-signed transaction, validates it, and broadcasts it:
-
-~~~
-   Client                           Server                        Monad Network
-      |                                |                                |
-      |  (1) Authorization:            |                                |
-      |      Payment <credential>      |                                |
-      |      (type="transaction")      |                                |
-      |------------------------------->|                                |
-      |                                |                                |
-      |                                |  (2) Decode & verify tx        |
-      |                                |                                |
-      |                                |  (3) eth_sendRawTransaction    |
-      |                                |------------------------------->|
-      |                                |                                |
-      |                                |  (4) Transfer confirmed        |
-      |                                |      (~800ms finality)         |
-      |                                |<-------------------------------|
-      |                                |                                |
-      |  (5) 200 OK                    |                                |
-      |      Payment-Receipt: <receipt>|                                |
-      |<-------------------------------|                                |
-      |                                |                                |
-~~~
-
-1. Client submits credential containing a signed ERC-20 `transfer` transaction
-2. Server decodes the transaction and verifies it matches the challenge
-3. Server broadcasts the raw transaction to Monad
-4. Transaction confirmed with fast finality (~800ms)
-5. Server returns a receipt whose `reference` is the transaction hash
-
 ## Transaction Verification {#transaction-verification}
 
 Before accepting a credential, servers MUST verify:
@@ -479,13 +405,6 @@ Before accepting a credential, servers MUST verify:
    - The emitting contract matches the `currency` token address
    - The `to` field matches the `recipient`
    - The `value` matches the `amount`
-
-### For transaction credentials:
-
-1. Deserialize the signed transaction from `payload.signature`
-2. Verify the transaction `to` field matches the `currency` token address
-3. Verify the transaction data is an ERC-20 `transfer(address,uint256)` call
-4. Decode the call data and verify `recipient` and `amount` match the challenge
 
 ### For authorization credentials:
 
