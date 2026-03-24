@@ -51,7 +51,7 @@
   "peerDependencies": {
     "typescript": ">=5.4.0",
     "viem": ">=2.46.2",
-    "mppx": ">=0.4.7"
+    "mppx": ">=0.4.8"
   },
   "peerDependenciesMeta": {
     "typescript": {
@@ -60,7 +60,7 @@
   },
   "devDependencies": {
     "hono": "4.12.8",
-    "mppx": "0.4.7",
+    "mppx": "0.4.8",
     "prool": "0.2.3",
     "viem": "2.46.2"
   }

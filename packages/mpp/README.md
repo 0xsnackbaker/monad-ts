@@ -1,6 +1,6 @@
 # @monad-crypto/mpp
 
-Monad payment method for the [Machine Payments Protocol](https://mpp.dev) (`mppx`).
+Monad payment method for the [Machine Payments Protocol](https://mpp.dev).
 
 > **Warning:** This package is under active development.
 
@@ -78,6 +78,7 @@ const mppx = Mppx.create({
 | `testnet` | `boolean` | `false` | Use testnet chain ID |
 | `waitForConfirmation` | `boolean` | `true` | Wait for on-chain confirmation before returning receipt |
 | `account` | `Account \| Address` | &mdash; | Server wallet for broadcasting `receiveWithAuthorization` transactions. Required when accepting `authorization` payloads (the server pays gas from this account) |
+| `store` | `Store` | In-memory | Store for transaction hash replay protection. Use a shared store (e.g. Redis) in multi-instance deployments so consumed hashes are visible across all server instances |
 
 ## Example
 

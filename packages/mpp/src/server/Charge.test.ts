@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { Credential } from "mppx";
+import { Credential, Store } from "mppx";
 import { createClient, http } from "viem";
 import { RPC_URL } from "../../test/setup.js";
 import {
@@ -293,6 +293,95 @@ test("defaults ERC-3009 ABI has transferWithAuthorization", () => {
   );
   expect(fn).toBeDefined();
   expect(fn?.inputs.length).toBe(9);
+});
+
+test("server charge rejects duplicate hash with custom store", async () => {
+  const client = createTestClient();
+  const store = Store.memory();
+
+  await Promise.all([
+    fundUSDC(client, accounts.payer.address, 10_000_000n),
+    setBalance(client, accounts.payer.address, 10n ** 18n),
+  ]);
+
+  const serverMethod = charge({
+    recipient: accounts.recipient.address,
+    account: accounts.recipient,
+    getClient: () => client,
+    store,
+  });
+
+  const clientMethod = clientCharge({
+    account: accounts.payer,
+    mode: "push",
+    getClient: () => client,
+  });
+
+  const challenge1 = makeChallenge({ amount: "1" });
+  const credentialStr = await clientMethod.createCredential({
+    challenge: challenge1,
+  } as never);
+  const credential = Credential.deserialize(credentialStr);
+
+  // First use should succeed
+  const receipt = await serverMethod.verify({
+    credential,
+    request: { ...challenge1.request, chainId: testChainId },
+  });
+  expect(receipt.status).toBe("success");
+
+  // Second use of the same hash should be rejected
+  const challenge2 = makeChallenge({ amount: "1" });
+  const credential2 = { ...credential, challenge: challenge2 };
+  await expect(
+    serverMethod.verify({
+      credential: credential2,
+      request: { ...challenge2.request, chainId: testChainId },
+    }),
+  ).rejects.toThrow("already consumed");
+});
+
+test("server charge rejects duplicate hash with default memory store", async () => {
+  const client = createTestClient();
+
+  await Promise.all([
+    fundUSDC(client, accounts.payer.address, 10_000_000n),
+    setBalance(client, accounts.payer.address, 10n ** 18n),
+  ]);
+
+  const serverMethod = charge({
+    recipient: accounts.recipient.address,
+    account: accounts.recipient,
+    getClient: () => client,
+  });
+
+  const clientMethod = clientCharge({
+    account: accounts.payer,
+    mode: "push",
+    getClient: () => client,
+  });
+
+  const challenge = makeChallenge({ amount: "1" });
+  const credentialStr = await clientMethod.createCredential({
+    challenge,
+  } as never);
+  const credential = Credential.deserialize(credentialStr);
+
+  const receipt = await serverMethod.verify({
+    credential,
+    request: { ...challenge.request, chainId: testChainId },
+  });
+  expect(receipt.status).toBe("success");
+
+  // Default memory store rejects duplicate hash
+  const challenge2 = makeChallenge({ amount: "1" });
+  const credential2 = { ...credential, challenge: challenge2 };
+  await expect(
+    serverMethod.verify({
+      credential: credential2,
+      request: { ...challenge2.request, chainId: testChainId },
+    }),
+  ).rejects.toThrow("already consumed");
 });
 
 test("server charge verifies a push (hash) credential end-to-end", async () => {

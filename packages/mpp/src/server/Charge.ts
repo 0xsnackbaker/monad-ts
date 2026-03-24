@@ -1,9 +1,10 @@
-import { Method } from "mppx";
-import type { Account, Address, Chain, Client, Hash } from "viem";
+import { Method, Store } from "mppx";
+import type { Account, Address, Chain, Client } from "viem";
 import {
   encodeFunctionData,
   erc20Abi,
   isAddressEqual,
+  keccak256,
   parseEventLogs,
   type TransactionReceipt,
 } from "viem";
@@ -41,6 +42,8 @@ export function charge(parameters: charge.Parameters = {}): Method.AnyServer {
     recipient,
     waitForConfirmation = true,
   } = parameters;
+  const store = (parameters.store ??
+    Store.memory()) as Store.Store<charge.StoreItemMap>;
 
   if (currency.toLowerCase() in defaults.erc3009Tokens && !parameters.account) {
     throw new Error(
@@ -117,6 +120,7 @@ export function charge(parameters: charge.Parameters = {}): Method.AnyServer {
       switch (payload.type) {
         case "hash": {
           const hash = payload.hash as `0x${string}`;
+          await assertHashUnused(store, hash);
 
           const sender = extractDidAddress(credential.source);
           if (!sender)
@@ -150,6 +154,8 @@ export function charge(parameters: charge.Parameters = {}): Method.AnyServer {
                 recipient: challengeRecipient,
               },
             );
+
+          await markHashUsed(store, hash);
 
           return toReceipt(receipt);
         }
@@ -212,7 +218,10 @@ export function charge(parameters: charge.Parameters = {}): Method.AnyServer {
             );
           }
 
-          let hash: Hash;
+          const hash = keccak256(signature as `0x${string}`);
+          await assertHashUnused(store, hash);
+          await markHashUsed(store, hash);
+
           if (waitForConfirmation) {
             const receipt = await sendTransactionSync(client, {
               account: serverAccount,
@@ -234,10 +243,10 @@ export function charge(parameters: charge.Parameters = {}): Method.AnyServer {
                 ],
               }),
             } as never);
-            hash = receipt.transactionHash;
+
             return toReceipt(receipt);
           } else {
-            hash = await sendTransaction(client, {
+            const hash = await sendTransaction(client, {
               account: serverAccount,
               chain: client.chain,
               to: challengeCurrency,
@@ -257,6 +266,7 @@ export function charge(parameters: charge.Parameters = {}): Method.AnyServer {
                 ],
               }),
             } as never);
+
             return {
               method: "monad" as const,
               status: "success" as const,
@@ -276,6 +286,10 @@ export function charge(parameters: charge.Parameters = {}): Method.AnyServer {
 }
 
 export declare namespace charge {
+  type StoreItemMap = {
+    [key: `mppx:charge:${string}`]: number;
+  };
+
   type Parameters = {
     /** Default payment amount (human-readable, e.g. "1.50"). */
     amount?: string | undefined;
@@ -306,7 +320,36 @@ export declare namespace charge {
      * from this account.
      */
     account?: Account | Address | undefined;
+    /**
+     * Store for transaction hash replay protection.
+     *
+     * Use a shared store in multi-instance deployments so consumed hashes are
+     * visible across all server instances.
+     */
+    store?: Store.Store | undefined;
   };
+}
+
+/** @internal */
+function getHashStoreKey(hash: `0x${string}`): `mppx:charge:${string}` {
+  return `mppx:charge:${hash.toLowerCase()}`;
+}
+
+/** @internal */
+async function assertHashUnused(
+  store: Store.Store<charge.StoreItemMap>,
+  hash: `0x${string}`,
+): Promise<void> {
+  const seen = await store.get(getHashStoreKey(hash));
+  if (seen !== null) throw new Error("Transaction hash has already been used.");
+}
+
+/** @internal */
+async function markHashUsed(
+  store: Store.Store<charge.StoreItemMap>,
+  hash: `0x${string}`,
+): Promise<void> {
+  await store.put(getHashStoreKey(hash), Date.now());
 }
 
 /** @internal */
