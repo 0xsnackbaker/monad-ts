@@ -373,7 +373,7 @@ message. The server calls `receiveWithAuthorization` and pays gas:
 
 Pull mode requires the ERC-20 token to implement ERC-3009 {{EIP-3009}}.
 Clients MUST NOT use pull mode with tokens that do not support
-`transferWithAuthorization`. Known supported tokens include USDC.
+`receiveWithAuthorization`. Known supported tokens include USDC.
 
 ### EIP-712 Domain
 
@@ -403,8 +403,10 @@ Before accepting a credential, servers MUST verify:
 2. Parse ERC-20 `Transfer` event logs from the receipt
 3. Verify a `Transfer` event exists where:
    - The emitting contract matches the `currency` token address
+   - The `from` field matches the `source` payer address
    - The `to` field matches the `recipient`
    - The `value` matches the `amount`
+4. Verify the transaction hash has not been used in a previous credential
 
 ### For authorization credentials:
 
@@ -413,7 +415,9 @@ Before accepting a credential, servers MUST verify:
 3. Verify the server account address matches the challenge `recipient`
    (`receiveWithAuthorization` requires `msg.sender == to`)
 4. Verify `validBefore` has not passed
-5. Call `receiveWithAuthorization` on the token contract with the provided
+5. Verify the authorization signature has not been used in a previous
+   credential
+6. Call `receiveWithAuthorization` on the token contract with the provided
    parameters and signature components (`v`, `r`, `s`)
 
 ## Receipt Generation
@@ -444,6 +448,20 @@ EVM transactions include chain ID and nonce that prevent replay attacks:
 - ERC-3009 authorizations include their own `nonce` (bytes32) for
   replay protection, separate from the account nonce
 
+While on-chain mechanisms prevent double-spending, servers MUST also
+track consumed credentials at the application layer:
+
+- **Hash credentials**: Servers MUST record each accepted transaction
+  hash and reject subsequent credentials that reuse it. Without this,
+  a client could submit the same confirmed transfer to multiple
+  endpoints or repeatedly to the same server.
+- **Authorization credentials**: Servers MUST record each accepted
+  authorization signature (or a hash thereof) and reject duplicates
+  before broadcasting. Without this, concurrent submissions of the
+  same authorization could cause the server to broadcast duplicate
+  `receiveWithAuthorization` transactions, wasting gas on reverted
+  calls.
+
 ## Amount Verification
 
 Clients MUST parse and verify the `request` payload before signing:
@@ -463,6 +481,30 @@ When using pull mode with ERC-3009 authorizations:
   prevent replay
 - The server calling `receiveWithAuthorization` MUST be the `to` address
   in the authorization; this is enforced by the token contract
+
+## Authorization Front-Running
+
+The EIP-712 typed data signed by the client is `TransferWithAuthorization`,
+which is the same struct verified by both `transferWithAuthorization` and
+`receiveWithAuthorization`. Any party that obtains the signature can call
+`transferWithAuthorization` — which has no `msg.sender` restriction — to
+execute the transfer before the server calls `receiveWithAuthorization`.
+
+The funds still arrive at the correct `to` address and cannot be
+redirected, but the server's subsequent `receiveWithAuthorization` call
+will revert (the ERC-3009 nonce is already consumed), wasting gas. The
+server may also fail to correlate the transfer with the client's request,
+since it arrived via a different transaction.
+
+Mitigations:
+
+- Authorization credentials are transmitted over HTTPS directly to the
+  server, not broadcast to a public mempool, limiting the interception
+  window.
+- Servers SHOULD submit `receiveWithAuthorization` promptly after
+  validation to minimize exposure.
+- Servers MAY monitor for `Transfer` events matching a pending
+  authorization to detect front-run settlements and still grant access.
 
 ## Server-Paid Gas (Pull Mode)
 
