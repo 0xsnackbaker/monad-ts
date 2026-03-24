@@ -13,7 +13,6 @@ npm install @monad-crypto/mpp mppx viem
 ## Features
 
 - **Charge** — One-time ERC-20 token transfers. Supports push mode (client broadcasts) and pull mode (server broadcasts).
-- **Session** — Streaming pay-as-you-go payments over payment channels with cumulative vouchers. *(Coming soon)*
 
 ## Usage
 
@@ -49,7 +48,7 @@ const mppx = Mppx.create({
 })
 ```
 
-<!-- ## Exports
+## Exports
 
 | Path | Description |
 |------|-------------|
@@ -72,12 +71,13 @@ const mppx = Mppx.create({
 | `recipient` | `string` | &mdash; | Address that receives payments |
 | `currency` | `string` | USDC | ERC-20 token contract address |
 | `decimals` | `number` | `6` | Token decimals |
-| `amount` | `string` | &mdash; | Default payment amount (human-readable) |
+| `amount` | `string` | &mdash; | Default payment amount (human-readable, e.g. "1.50") |
+| `description` | `string` | &mdash; | Human-readable description |
+| `externalId` | `string` | &mdash; | External identifier to echo back in receipt |
 | `getClient` | `(params) => Client` | Built-in | Custom viem client resolver by chain ID |
 | `testnet` | `boolean` | `false` | Use testnet chain ID |
 | `waitForConfirmation` | `boolean` | `true` | Wait for on-chain confirmation before returning receipt |
-| `account` | `Account \| Address` | &mdash; | Server wallet for broadcasting `receiveWithAuthorization` (required when `serverPaysGas` is `true`) |
-| `serverPaysGas` | `boolean` | `false` | Server pays gas via ERC-3009. Requires an ERC-3009 token (e.g. USDC) and `account` | -->
+| `account` | `Account \| Address` | &mdash; | Server wallet for broadcasting `receiveWithAuthorization` transactions. Required when accepting `authorization` payloads (the server pays gas from this account) |
 
 ## Example
 
