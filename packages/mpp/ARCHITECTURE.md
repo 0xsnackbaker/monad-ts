@@ -7,7 +7,7 @@ This document describes the architecture of `@monad-crypto/mpp` for security rev
 - **Settlement layer**: The library creates and verifies on-chain ERC-20 payments. It signs transactions (client) and broadcasts transactions (client or server). Both sides handle private keys indirectly through Viem wallet clients.
 - **Two credential modes**: Push (client broadcasts a transfer, server verifies the receipt) and Pull (client signs an ERC-3009 authorization, server broadcasts `receiveWithAuthorization`).
 - **Hardcoded defaults**: Chain IDs, token addresses, and ERC-3009 metadata are constants in `src/defaults.ts`. They can be overridden by callers.
-- **Runtime dependencies**: `viem >=2.46.2` (peer), `mppx >=0.4.7` (peer), `zod` (direct — schema validation).
+- **Runtime dependencies**: `viem >=2.46.2` (peer), `mppx >=0.4.8` (peer), `zod` (direct — schema validation).
 - **No secrets**: No API keys or environment variables. RPC URLs and accounts are provided by the caller.
 
 ## 2. Trust Boundaries
@@ -155,7 +155,7 @@ All constants are defined in `src/defaults.ts`.
 | Dependency | Type | Version | Purpose |
 |---|---|---|---|
 | `viem` | peer | `>=2.46.2` | Transaction signing, ABI encoding, RPC transport |
-| `mppx` | peer | `>=0.4.7` | Payment method protocol framework |
+| `mppx` | peer | `>=0.4.8` | Payment method protocol framework |
 | `zod` | direct | `4.3.6` | Schema validation for challenge/credential payloads |
 
 ## 10. Known Limitations

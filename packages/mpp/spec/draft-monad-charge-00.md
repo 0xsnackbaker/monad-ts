@@ -300,7 +300,7 @@ server:
       |------------------------------------------------------->        |
       |                                |                                |
       |  (2) Transaction confirmed     |                                |
-      |      (~800ms finality)         |                                |
+      |      (~400ms finality)         |                                |
       |<-------------------------------------------------------        |
       |                                |                                |
       |  (3) Authorization:            |                                |
@@ -322,7 +322,7 @@ server:
 ~~~
 
 1. Client broadcasts ERC-20 `transfer(recipient, amount)` to Monad
-2. Transaction included in block with fast finality (~800ms)
+2. Transaction included in block with fast finality (~400ms)
 3. Client submits credential with `type="hash"` containing the tx hash
 4. Server fetches the transaction receipt
 5. Server verifies the `Transfer` event log matches the challenge
@@ -350,7 +350,7 @@ message. The server calls `receiveWithAuthorization` and pays gas:
       |                                |------------------------------->|
       |                                |                                |
       |                                |  (5) Transfer complete         |
-      |                                |      (~800ms finality)         |
+      |                                |      (~400ms finality)         |
       |                                |<-------------------------------|
       |                                |                                |
       |  (6) 200 OK                    |                                |
@@ -366,7 +366,7 @@ message. The server calls `receiveWithAuthorization` and pays gas:
 4. Server calls `receiveWithAuthorization` on the token contract
    (the server MUST be the recipient, as `receiveWithAuthorization`
    requires `msg.sender == to`)
-5. Transaction confirmed with fast finality (~800ms)
+5. Transaction confirmed with fast finality (~400ms)
 6. Server returns a receipt whose `reference` is the transaction hash
 
 ### ERC-3009 Token Requirements

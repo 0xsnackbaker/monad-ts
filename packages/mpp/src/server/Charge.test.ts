@@ -338,7 +338,7 @@ test("server charge rejects duplicate hash with custom store", async () => {
       credential: credential2,
       request: { ...challenge2.request, chainId: testChainId },
     }),
-  ).rejects.toThrow("already consumed");
+  ).rejects.toThrow("Transaction hash has already been used.");
 });
 
 test("server charge rejects duplicate hash with default memory store", async () => {
@@ -381,7 +381,7 @@ test("server charge rejects duplicate hash with default memory store", async () 
       credential: credential2,
       request: { ...challenge2.request, chainId: testChainId },
     }),
-  ).rejects.toThrow("already consumed");
+  ).rejects.toThrow("Transaction hash has already been used.");
 });
 
 test("server charge verifies a push (hash) credential end-to-end", async () => {
