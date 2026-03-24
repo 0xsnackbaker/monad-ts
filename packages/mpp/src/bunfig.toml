@@ -1,4 +1,0 @@
-[test]
-preload = ["./test/setup.ts"]
-timeout = 30000
-coverageThreshold = 1
