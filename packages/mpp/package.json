@@ -1,0 +1,67 @@
+{
+  "name": "@monad-crypto/mpp",
+  "version": "0.0.0",
+  "description": "Monad payment method for the Machine Payments Protocol",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/monad-crypto/monad-ts.git",
+    "directory": "packages/mpp"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    },
+    "./client": {
+      "import": {
+        "types": "./dist/client/index.d.ts",
+        "default": "./dist/client/index.js"
+      }
+    },
+    "./server": {
+      "import": {
+        "types": "./dist/server/index.d.ts",
+        "default": "./dist/server/index.js"
+      }
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "src/**/*.ts",
+    "!**/*.test.ts"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "4.3.6"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.4.0",
+    "viem": ">=2.46.2",
+    "mppx": ">=0.4.8"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "hono": "4.12.8",
+    "mppx": "0.4.8",
+    "prool": "0.2.3",
+    "viem": "2.46.2"
+  }
+}

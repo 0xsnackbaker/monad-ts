@@ -7,6 +7,7 @@ Monorepo for Monad TypeScript libraries.
 | Package | Description |
 | --- | --- |
 | [`@monad-crypto/viem`](packages/viem) | Viem actions for the Monad staking precompile and WMON token |
+| [`@monad-crypto/mpp`](packages/mpp) | Monad payment method for the Machine Payments Protocol |
 
 ## Development
 
