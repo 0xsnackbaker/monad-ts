@@ -1,5 +1,11 @@
 # @monad-crypto/viem
 
+## 0.0.3
+
+### Patch Changes
+
+- a5ac556: Bump dependency versions.
+
 ## 0.0.2
 
 ### Patch Changes
