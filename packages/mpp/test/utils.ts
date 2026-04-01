@@ -13,8 +13,7 @@ export const testChainId = defaults.chainId.mainnet;
 export const token: Address = "0x754704Bc059F8C67012fEd69BC8A327a5aafb603";
 
 /** USDT0 token address. */
-export const usdt0Token: Address =
-  "0xe7cd86e13AC4309349F30B3435a9d337750fC82D";
+export const usdt0Token: Address = "0xe7cd86e13AC4309349F30B3435a9d337750fC82D";
 
 /** A non-ERC-3009 token address for testing rejection paths. */
 export const NON_ERC3009_TOKEN: Address =

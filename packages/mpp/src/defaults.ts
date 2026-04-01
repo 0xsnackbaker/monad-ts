@@ -77,8 +77,14 @@ export const erc3009Abi = [
  */
 export const erc3009Tokens: Record<string, { name: string; version: string }> =
   {
-    ["0x754704Bc059F8C67012fEd69BC8A327a5aafb603".toLowerCase()]: { name: "USDC", version: "2" },
-    ["0xe7cd86e13AC4309349F30B3435a9d337750fC82D".toLowerCase()]: { name: "USDT0", version: "1" },
+    ["0x754704Bc059F8C67012fEd69BC8A327a5aafb603".toLowerCase()]: {
+      name: "USDC",
+      version: "2",
+    },
+    ["0xe7cd86e13AC4309349F30B3435a9d337750fC82D".toLowerCase()]: {
+      name: "USDT0",
+      version: "1",
+    },
   };
 
 /** Resolves the default currency for a given chain. */
