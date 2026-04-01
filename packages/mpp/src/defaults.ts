@@ -5,16 +5,10 @@ export const chainId = {
 
 export type ChainId = (typeof chainId)[keyof typeof chainId];
 
-/** Token addresses. */
-export const tokens = {
-  usdc: "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
-} as const;
-
 /** Chain ID → default currency. */
-export const currency = {
-  [chainId.mainnet]: tokens.usdc,
-  [chainId.testnet]: tokens.usdc,
-} as const satisfies Record<ChainId, string>;
+export const currency: Partial<Record<ChainId, string>> = {
+  [chainId.mainnet]: "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+};
 
 /** Default token decimals for USDC. */
 export const decimals = 6;
@@ -83,7 +77,8 @@ export const erc3009Abi = [
  */
 export const erc3009Tokens: Record<string, { name: string; version: string }> =
   {
-    [tokens.usdc.toLowerCase()]: { name: "USDC", version: "2" },
+    ["0x754704Bc059F8C67012fEd69BC8A327a5aafb603".toLowerCase()]: { name: "USDC", version: "2" },
+    ["0xe7cd86e13AC4309349F30B3435a9d337750fC82D".toLowerCase()]: { name: "USDT0", version: "1" },
   };
 
 /** Resolves the default currency for a given chain. */
@@ -94,5 +89,8 @@ export function resolveCurrency(parameters: {
   const id =
     parameters.chainId ??
     (parameters.testnet ? chainId.testnet : chainId.mainnet);
-  return currency[id as keyof typeof currency] ?? tokens.usdc;
+  const resolved = currency[id as ChainId];
+  if (!resolved)
+    throw new Error(`No default currency configured for chainId ${id}.`);
+  return resolved;
 }

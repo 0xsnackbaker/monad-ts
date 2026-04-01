@@ -10,7 +10,11 @@ import { RPC_URL } from "./setup.js";
 export const testChainId = defaults.chainId.mainnet;
 
 /** Default test token (USDC). */
-export const token: Address = defaults.tokens.usdc;
+export const token: Address = "0x754704Bc059F8C67012fEd69BC8A327a5aafb603";
+
+/** USDT0 token address. */
+export const usdt0Token: Address =
+  "0xe7cd86e13AC4309349F30B3435a9d337750fC82D";
 
 /** A non-ERC-3009 token address for testing rejection paths. */
 export const NON_ERC3009_TOKEN: Address =
@@ -18,6 +22,10 @@ export const NON_ERC3009_TOKEN: Address =
 
 /** USDC whale on Monad mainnet at the fork block. */
 export const WHALE: Address = "0xfc08DB693D20F8F5dE32aC93816fA0ec2d6a221D";
+
+/** USDT0 whale on Monad mainnet at the fork block. */
+export const USDT0_WHALE: Address =
+  "0xf89d7b9c864f589bbF53a82105107622B35EaA40";
 
 /** Dummy 65-byte signature (v=27, r=0x00..., s=0x00...). */
 export const DUMMY_SIGNATURE = `0x${"00".repeat(32)}${"00".repeat(32)}1b`;
@@ -62,6 +70,39 @@ export async function setBalance(
   await client.request({
     method: "anvil_setBalance" as never,
     params: [address, `0x${value.toString(16)}`] as never,
+  });
+}
+
+/** Impersonates a whale to transfer USDT0 to a target address. */
+export async function fundUSDT0(
+  client: ReturnType<typeof createTestClient>,
+  to: Address,
+  amount: bigint,
+) {
+  await Promise.all([
+    setBalance(client, USDT0_WHALE, 10n ** 18n),
+    client.request({
+      method: "anvil_impersonateAccount" as never,
+      params: [USDT0_WHALE] as never,
+    }),
+  ]);
+  await client.request({
+    method: "eth_sendTransaction" as never,
+    params: [
+      {
+        from: USDT0_WHALE,
+        to: usdt0Token,
+        data: encodeFunctionData({
+          abi: erc20Abi,
+          functionName: "transfer",
+          args: [to, amount],
+        }),
+      },
+    ] as never,
+  });
+  await client.request({
+    method: "anvil_stopImpersonatingAccount" as never,
+    params: [USDT0_WHALE] as never,
   });
 }
 
