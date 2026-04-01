@@ -401,13 +401,50 @@ test("server charge verifies a pull (authorization) credential end-to-end", asyn
 
   await Promise.all([
     fundUSDC(client, accounts.payer.address, 10_000_000n),
+    setBalance(client, accounts.recipient.address, 10n ** 18n),
+  ]);
+
+  const serverMethod = charge({
+    recipient: accounts.recipient.address,
+    account: accounts.recipient,
+    getClient: () => client,
+  });
+
+  const clientMethod = clientCharge({
+    account: accounts.payer,
+    mode: "pull",
+    getClient: () => client,
+  });
+
+  const challenge = makeChallenge({
+    amount: "1",
+    recipient: accounts.recipient.address,
+  });
+  const credentialStr = await clientMethod.createCredential({
+    challenge,
+  } as never);
+  const credential = Credential.deserialize(credentialStr);
+
+  const receipt = await serverMethod.verify({
+    credential,
+    request: { ...challenge.request, chainId: testChainId },
+  });
+
+  expect(receipt.status).toBe("success");
+  expect(receipt.reference).toMatch(/^0x[0-9a-f]{64}$/);
+});
+
+test("server charge succeeds when server account does not match recipient", async () => {
+  const client = createTestClient();
+
+  await Promise.all([
+    fundUSDC(client, accounts.payer.address, 10_000_000n),
     setBalance(client, accounts.server.address, 10n ** 18n),
   ]);
 
-  // recipient != server account — transferWithAuthorization allows any sender
   const serverMethod = charge({
     recipient: accounts.recipient.address,
-    account: accounts.server,
+    account: accounts.server, // different from recipient
     getClient: () => client,
   });
 
