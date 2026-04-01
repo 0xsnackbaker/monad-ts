@@ -25,7 +25,7 @@ export const rpcUrl: Record<number, string> = {
   [chainId.testnet]: "https://testnet-rpc.monad.xyz",
 };
 
-/** ERC-3009 `transferWithAuthorization` and `receiveWithAuthorization` ABI. */
+/** ERC-3009 ABI (`transferWithAuthorization`, `receiveWithAuthorization`). */
 export const erc3009Abi = [
   {
     type: "function",

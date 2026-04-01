@@ -5,7 +5,7 @@ This document describes the architecture of `@monad-crypto/mpp` for security rev
 ## 1. Security Scope Summary
 
 - **Settlement layer**: The library creates and verifies on-chain ERC-20 payments. It signs transactions (client) and broadcasts transactions (client or server). Both sides handle private keys indirectly through Viem wallet clients.
-- **Two credential modes**: Push (client broadcasts a transfer, server verifies the receipt) and Pull (client signs an ERC-3009 authorization, server broadcasts `receiveWithAuthorization`).
+- **Two credential modes**: Push (client broadcasts a transfer, server verifies the receipt) and Pull (client signs an ERC-3009 authorization, server broadcasts `transferWithAuthorization`).
 - **Hardcoded defaults**: Chain IDs, token addresses, and ERC-3009 metadata are constants in `src/defaults.ts`. They can be overridden by callers.
 - **Runtime dependencies**: `viem >=2.46.2` (peer), `mppx >=0.4.8` (peer), `zod` (direct — schema validation).
 - **No secrets**: No API keys or environment variables. RPC URLs and accounts are provided by the caller.
@@ -28,7 +28,7 @@ There are three trust boundaries, marked B1–B3 in the diagram below.
             Client ──B1──▶ Server                 ▼
                             │                   Server
                             │ getTransactionReceipt │
-                       B2───┘                       │ receiveWithAuthorization
+                       B2───┘                       │ transferWithAuthorization
                             │                  B2───┘
                             ▼                       │
                           Monad ◀──B3──▶ ERC-20   Monad ◀──B3──▶ ERC-20
@@ -38,7 +38,7 @@ There are three trust boundaries, marked B1–B3 in the diagram below.
 
 **B2 — Server → RPC**: The server verifies credentials by reading on-chain state (push) or broadcasting a transaction (pull). A malicious or faulty RPC can return incorrect data — this is the caller's responsibility to mitigate via provider selection.
 
-**B3 — RPC → ERC-20 Contract**: In pull mode, the token contract enforces `msg.sender == to` in `receiveWithAuthorization`. The server must be the recipient to broadcast. In push mode, the contract emits `Transfer` events that the server reads for verification.
+**B3 — RPC → ERC-20 Contract**: In pull mode, the server calls `transferWithAuthorization` on the token contract. The EIP-712 signature binds the `to` address, ensuring funds reach the intended recipient regardless of who submits the transaction. In push mode, the contract emits `Transfer` events that the server reads for verification.
 
 ## 3. Data Flow
 
@@ -69,7 +69,7 @@ There are three trust boundaries, marked B1–B3 in the diagram below.
    a. Resolves wallet account and viem client.
    b. Verifies token supports ERC-3009 (lookup in erc3009Tokens registry).
    c. Generates random 32-byte nonce for replay protection.
-   d. Signs EIP-712 typed data for ReceiveWithAuthorization:
+   d. Signs EIP-712 typed data for TransferWithAuthorization:
       - Domain: { name, version, chainId, verifyingContract: currency }
       - Message: { from, to, value, validAfter: 0, validBefore: expires, nonce }
    e. Serializes credential: { type: "authorization", from, to, value, validAfter,
@@ -77,12 +77,11 @@ There are three trust boundaries, marked B1–B3 in the diagram below.
 
 3. Server verifies credential:
    a. Validates: to == recipient, value == amount, validBefore not passed.
-   b. Verifies server account address == challenge recipient (required by ERC-3009).
-   c. Splits signature into v, r, s.
-   d. Calls receiveWithAuthorization(from, to, value, validAfter, validBefore, nonce, v, r, s)
+   b. Splits signature into v, r, s.
+   c. Calls transferWithAuthorization(from, to, value, validAfter, validBefore, nonce, v, r, s)
       on the token contract.
-   e. Waits for on-chain confirmation (configurable).
-   f. Returns receipt with transaction hash.
+   d. Waits for on-chain confirmation (configurable).
+   e. Returns receipt with transaction hash.
 ```
 
 ## 4. Hardcoded Constants
@@ -123,7 +122,7 @@ All constants are defined in `src/defaults.ts`.
 ### Amount and Recipient Verification
 
 - **Server always verifies on-chain**: Push mode checks Transfer event logs. Pull mode passes amount/recipient to the contract call.
-- **Pull mode recipient lock**: `receiveWithAuthorization` requires `msg.sender == to`. The server cannot redirect funds to a different address.
+- **Pull mode recipient binding**: The EIP-712 signature locks the `to` address. Funds cannot be redirected to a different recipient because the signature would be invalid.
 
 ### Expiration
 
@@ -146,7 +145,7 @@ All constants are defined in `src/defaults.ts`.
 
 ## 8. Denial of Service Risks
 
-1. **Gas griefing (pull mode)**: The server pays gas for `receiveWithAuthorization`. A malicious client can submit authorizations that revert on-chain (e.g., insufficient balance, already-used nonce). Mitigation is the caller's responsibility — rate limiting, balance pre-checks, client authentication.
+1. **Gas griefing (pull mode)**: The server pays gas for `transferWithAuthorization`. A malicious client can submit authorizations that revert on-chain (e.g., insufficient balance, already-used nonce). Mitigation is the caller's responsibility — rate limiting, balance pre-checks, client authentication.
 
 2. **RPC dependency**: Both modes require RPC calls for verification. RPC rate limits or downtime block settlement. Mitigation: caller-provided fallback providers via `getClient()`.
 
@@ -164,4 +163,4 @@ All constants are defined in `src/defaults.ts`.
 - **Single-chain**: Each credential targets one chain. Cross-chain payments are not supported.
 - **No partial payments**: The full challenge amount must be paid in a single transaction.
 - **RPC trust assumption**: The library trusts whatever RPC endpoint the caller configures. A malicious RPC can return fabricated receipts (push mode) or suppress transactions (pull mode).
-- **Server key requirement (pull mode)**: The server must hold a private key that matches the recipient address to call `receiveWithAuthorization`. This is an inherent ERC-3009 constraint.
+- **Server key requirement (pull mode)**: The server must hold a private key funded with native tokens to pay gas for `transferWithAuthorization`. The server account does not need to match the recipient address.

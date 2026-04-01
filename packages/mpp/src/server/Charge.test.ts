@@ -157,29 +157,6 @@ test("server charge rejects expired authorization", async () => {
   ).rejects.toThrow("authorization expired");
 });
 
-test("server charge rejects when server account does not match recipient", async () => {
-  const client = createTestClient();
-  const method = charge({
-    recipient: accounts.recipient.address,
-    account: accounts.server, // different from recipient
-    getClient: () => client,
-  });
-
-  const challenge = makeChallenge({
-    recipient: accounts.recipient.address,
-  });
-
-  await expect(
-    method.verify({
-      credential: {
-        challenge,
-        payload: makeAuthorizationPayload({ to: accounts.recipient.address }),
-      },
-      request: { ...challenge.request, chainId: testChainId },
-    }),
-  ).rejects.toThrow("Server account address does not match");
-});
-
 test("server charge request hook resolves chainId from client", async () => {
   const client = createTestClient();
   const method = charge({
@@ -427,8 +404,9 @@ test("server charge verifies a pull (authorization) credential end-to-end", asyn
     setBalance(client, accounts.server.address, 10n ** 18n),
   ]);
 
+  // recipient != server account — transferWithAuthorization allows any sender
   const serverMethod = charge({
-    recipient: accounts.server.address,
+    recipient: accounts.recipient.address,
     account: accounts.server,
     getClient: () => client,
   });
@@ -441,7 +419,7 @@ test("server charge verifies a pull (authorization) credential end-to-end", asyn
 
   const challenge = makeChallenge({
     amount: "1",
-    recipient: accounts.server.address,
+    recipient: accounts.recipient.address,
   });
   const credentialStr = await clientMethod.createCredential({
     challenge,

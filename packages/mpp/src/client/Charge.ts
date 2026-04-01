@@ -98,7 +98,7 @@ export function charge(parameters: charge.Parameters = {}) {
             verifyingContract: currency,
           },
           types: {
-            ReceiveWithAuthorization: [
+            TransferWithAuthorization: [
               { name: "from", type: "address" },
               { name: "to", type: "address" },
               { name: "value", type: "uint256" },
@@ -107,7 +107,7 @@ export function charge(parameters: charge.Parameters = {}) {
               { name: "nonce", type: "bytes32" },
             ],
           },
-          primaryType: "ReceiveWithAuthorization",
+          primaryType: "TransferWithAuthorization",
           message: {
             from: account.address,
             to: recipient,
@@ -171,7 +171,7 @@ export declare namespace charge {
      *
      * - `'push'`: Client broadcasts the transaction and sends the tx hash.
      * - `'pull'`: Client signs an ERC-3009 TransferWithAuthorization
-     *   message. Server calls `receiveWithAuthorization` and pays gas.
+     *   message. Server calls `transferWithAuthorization` and pays gas.
      *
      * @default `'push'` for JSON-RPC accounts, `'pull'` for local accounts.
      */
