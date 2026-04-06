@@ -5,9 +5,11 @@ export const chainId = {
 
 export type ChainId = (typeof chainId)[keyof typeof chainId];
 
+const USDC = "0x754704Bc059F8C67012fEd69BC8A327a5aafb603";
+
 /** Chain ID → default currency. */
 export const currency: Partial<Record<ChainId, string>> = {
-  [chainId.mainnet]: "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+  [chainId.mainnet]: USDC,
 };
 
 /** Default token decimals for USDC. */
@@ -77,7 +79,7 @@ export const erc3009Abi = [
  */
 export const erc3009Tokens: Record<string, { name: string; version: string }> =
   {
-    ["0x754704Bc059F8C67012fEd69BC8A327a5aafb603".toLowerCase()]: {
+    [USDC.toLowerCase()]: {
       name: "USDC",
       version: "2",
     },
