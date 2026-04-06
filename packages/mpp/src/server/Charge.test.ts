@@ -6,12 +6,14 @@ import {
   accounts,
   createTestClient,
   fundUSDC,
+  fundUSDT0,
   makeAuthorizationPayload,
   makeChallenge,
   NON_ERC3009_TOKEN,
   setBalance,
   testChainId,
   token,
+  usdt0Token,
 } from "../../test/utils.js";
 import { charge as clientCharge } from "../client/Charge.js";
 import * as defaults from "../defaults.js";
@@ -183,6 +185,7 @@ test("server charge request hook uses testnet chainId when configured", async ()
   const method = charge({
     recipient: accounts.recipient.address,
     account: accounts.recipient,
+    currency: token,
     testnet: true,
     getClient: ({ chainId }) => {
       const id = chainId ?? defaults.chainId.testnet;
@@ -252,8 +255,10 @@ test("defaults resolveCurrency returns USDC for mainnet", () => {
   expect(defaults.resolveCurrency({})).toBe(token);
 });
 
-test("defaults resolveCurrency returns USDC for testnet", () => {
-  expect(defaults.resolveCurrency({ testnet: true })).toBe(token);
+test("defaults resolveCurrency throws for testnet (no default configured)", () => {
+  expect(() => defaults.resolveCurrency({ testnet: true })).toThrow(
+    "No default currency configured",
+  );
 });
 
 test("defaults ERC-3009 ABI has receiveWithAuthorization", () => {
@@ -382,6 +387,85 @@ test("server charge verifies a push (hash) credential end-to-end", async () => {
   });
 
   const challenge = makeChallenge({ amount: "1" });
+  const credentialStr = await clientMethod.createCredential({
+    challenge,
+  } as never);
+  const credential = Credential.deserialize(credentialStr);
+
+  const receipt = await serverMethod.verify({
+    credential,
+    request: { ...challenge.request, chainId: testChainId },
+  });
+
+  expect(receipt.status).toBe("success");
+  expect(receipt.reference).toMatch(/^0x[0-9a-f]{64}$/);
+});
+
+test("server charge verifies a USDT0 push (hash) credential end-to-end", async () => {
+  const client = createTestClient();
+
+  await Promise.all([
+    fundUSDT0(client, accounts.payer.address, 10_000_000n),
+    setBalance(client, accounts.payer.address, 10n ** 18n),
+  ]);
+
+  const serverMethod = charge({
+    recipient: accounts.recipient.address,
+    account: accounts.recipient,
+    currency: usdt0Token,
+    getClient: () => client,
+  });
+
+  const clientMethod = clientCharge({
+    account: accounts.payer,
+    mode: "push",
+    getClient: () => client,
+  });
+
+  const challenge = makeChallenge({
+    amount: "1",
+    currency: usdt0Token,
+  });
+  const credentialStr = await clientMethod.createCredential({
+    challenge,
+  } as never);
+  const credential = Credential.deserialize(credentialStr);
+
+  const receipt = await serverMethod.verify({
+    credential,
+    request: { ...challenge.request, chainId: testChainId },
+  });
+
+  expect(receipt.status).toBe("success");
+  expect(receipt.reference).toMatch(/^0x[0-9a-f]{64}$/);
+});
+
+test("server charge verifies a USDT0 pull (authorization) credential end-to-end", async () => {
+  const client = createTestClient();
+
+  await Promise.all([
+    fundUSDT0(client, accounts.payer.address, 10_000_000n),
+    setBalance(client, accounts.server.address, 10n ** 18n),
+  ]);
+
+  const serverMethod = charge({
+    recipient: accounts.server.address,
+    account: accounts.server,
+    currency: usdt0Token,
+    getClient: () => client,
+  });
+
+  const clientMethod = clientCharge({
+    account: accounts.payer,
+    mode: "pull",
+    getClient: () => client,
+  });
+
+  const challenge = makeChallenge({
+    amount: "1",
+    currency: usdt0Token,
+    recipient: accounts.server.address,
+  });
   const credentialStr = await clientMethod.createCredential({
     challenge,
   } as never);
