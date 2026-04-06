@@ -77,7 +77,7 @@ const mppx = Mppx.create({
 | `getClient` | `(params) => Client` | Built-in | Custom viem client resolver by chain ID |
 | `testnet` | `boolean` | `false` | Use testnet chain ID |
 | `waitForConfirmation` | `boolean` | `true` | Wait for on-chain confirmation before returning receipt |
-| `account` | `Account \| Address` | &mdash; | Server wallet for broadcasting `receiveWithAuthorization` transactions. Required when accepting `authorization` payloads (the server pays gas from this account) |
+| `account` | `Account \| Address` | &mdash; | Server wallet for broadcasting `transferWithAuthorization` transactions. Required when accepting `authorization` payloads (the server pays gas from this account). Does not need to match the recipient address |
 | `store` | `Store` | In-memory | Store for transaction hash replay protection. Use a shared store (e.g. Redis) in multi-instance deployments so consumed hashes are visible across all server instances |
 
 ## Example
@@ -95,7 +95,7 @@ bun run example/server.ts
 bun run example/client.ts
 ```
 
-The server account receives payments and broadcasts `receiveWithAuthorization` transactions, so it must be funded with MON for gas. The client account must be funded with USDC.
+The server account broadcasts `transferWithAuthorization` transactions and pays gas, so it must be funded with MON. The client account must be funded with USDC.
 
 ## Specification
 
@@ -106,7 +106,7 @@ The formal protocol specification is available at [`spec/draft-monad-charge-00.m
 1. Server issues a `402 Payment Required` challenge via `mppx` with method `monad` and intent `charge`.
 2. Client creates a credential based on the mode:
    - **Push mode**: Client broadcasts an ERC-20 `transfer(to, amount)` transaction and returns the tx hash.
-   - **Pull mode**: Client signs an ERC-3009 `TransferWithAuthorization` and returns the signature. Server calls `receiveWithAuthorization` to execute the transfer and pay gas.
+   - **Pull mode**: Client signs an ERC-3009 `TransferWithAuthorization` and returns the signature. Server calls `transferWithAuthorization` to execute the transfer and pay gas.
 3. Server verifies the payment matches the challenge (amount, recipient, currency).
 4. Server returns a `Payment-Receipt` header on success.
 

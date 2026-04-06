@@ -48,7 +48,7 @@ export function charge(parameters: charge.Parameters = {}): Method.AnyServer {
   if (currency.toLowerCase() in defaults.erc3009Tokens && !parameters.account) {
     throw new Error(
       `ERC-3009 requires an \`account\` parameter so the server can sign and broadcast ` +
-        `the receiveWithAuthorization transaction.`,
+        `the transferWithAuthorization transaction.`,
     );
   }
 
@@ -164,7 +164,7 @@ export function charge(parameters: charge.Parameters = {}): Method.AnyServer {
           if (!serverAccount) {
             throw new Error(
               "Received ERC-3009 authorization credential but no server `account` is configured. " +
-                "Set `account` in charge parameters to broadcast receiveWithAuthorization.",
+                "Set `account` in charge parameters to broadcast transferWithAuthorization.",
             );
           }
 
@@ -197,16 +197,6 @@ export function charge(parameters: charge.Parameters = {}): Method.AnyServer {
               { expected: challengeAmount, actual: value },
             );
 
-          if (!isAddressEqual(challengeRecipient, serverAccount.address))
-            throw new MismatchError(
-              "Server account address does not match challenge recipient. " +
-                "receiveWithAuthorization requires msg.sender == to.",
-              {
-                recipient: challengeRecipient,
-                serverAccount: serverAccount.address,
-              },
-            );
-
           // Check expiry from the authorization itself
           const validBeforeTs = Number(validBefore);
           if (
@@ -229,7 +219,7 @@ export function charge(parameters: charge.Parameters = {}): Method.AnyServer {
               to: challengeCurrency,
               data: encodeFunctionData({
                 abi: defaults.erc3009Abi,
-                functionName: "receiveWithAuthorization",
+                functionName: "transferWithAuthorization",
                 args: [
                   from as Address,
                   to as Address,
@@ -252,7 +242,7 @@ export function charge(parameters: charge.Parameters = {}): Method.AnyServer {
               to: challengeCurrency,
               data: encodeFunctionData({
                 abi: defaults.erc3009Abi,
-                functionName: "receiveWithAuthorization",
+                functionName: "transferWithAuthorization",
                 args: [
                   from as Address,
                   to as Address,
@@ -315,7 +305,7 @@ export declare namespace charge {
       | ((parameters: { chainId?: number | undefined }) => MaybePromise<Client>)
       | undefined;
     /**
-     * Server account used to broadcast `receiveWithAuthorization` transactions.
+     * Server account used to broadcast `transferWithAuthorization` transactions.
      * Required when accepting `authorization` payloads. The server pays gas
      * from this account.
      */

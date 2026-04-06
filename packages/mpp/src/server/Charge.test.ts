@@ -157,29 +157,6 @@ test("server charge rejects expired authorization", async () => {
   ).rejects.toThrow("authorization expired");
 });
 
-test("server charge rejects when server account does not match recipient", async () => {
-  const client = createTestClient();
-  const method = charge({
-    recipient: accounts.recipient.address,
-    account: accounts.server, // different from recipient
-    getClient: () => client,
-  });
-
-  const challenge = makeChallenge({
-    recipient: accounts.recipient.address,
-  });
-
-  await expect(
-    method.verify({
-      credential: {
-        challenge,
-        payload: makeAuthorizationPayload({ to: accounts.recipient.address }),
-      },
-      request: { ...challenge.request, chainId: testChainId },
-    }),
-  ).rejects.toThrow("Server account address does not match");
-});
-
 test("server charge request hook resolves chainId from client", async () => {
   const client = createTestClient();
   const method = charge({
@@ -424,12 +401,12 @@ test("server charge verifies a pull (authorization) credential end-to-end", asyn
 
   await Promise.all([
     fundUSDC(client, accounts.payer.address, 10_000_000n),
-    setBalance(client, accounts.server.address, 10n ** 18n),
+    setBalance(client, accounts.recipient.address, 10n ** 18n),
   ]);
 
   const serverMethod = charge({
-    recipient: accounts.server.address,
-    account: accounts.server,
+    recipient: accounts.recipient.address,
+    account: accounts.recipient,
     getClient: () => client,
   });
 
@@ -441,7 +418,45 @@ test("server charge verifies a pull (authorization) credential end-to-end", asyn
 
   const challenge = makeChallenge({
     amount: "1",
-    recipient: accounts.server.address,
+    recipient: accounts.recipient.address,
+  });
+  const credentialStr = await clientMethod.createCredential({
+    challenge,
+  } as never);
+  const credential = Credential.deserialize(credentialStr);
+
+  const receipt = await serverMethod.verify({
+    credential,
+    request: { ...challenge.request, chainId: testChainId },
+  });
+
+  expect(receipt.status).toBe("success");
+  expect(receipt.reference).toMatch(/^0x[0-9a-f]{64}$/);
+});
+
+test("server charge succeeds when server account does not match recipient", async () => {
+  const client = createTestClient();
+
+  await Promise.all([
+    fundUSDC(client, accounts.payer.address, 10_000_000n),
+    setBalance(client, accounts.server.address, 10n ** 18n),
+  ]);
+
+  const serverMethod = charge({
+    recipient: accounts.recipient.address,
+    account: accounts.server, // different from recipient
+    getClient: () => client,
+  });
+
+  const clientMethod = clientCharge({
+    account: accounts.payer,
+    mode: "pull",
+    getClient: () => client,
+  });
+
+  const challenge = makeChallenge({
+    amount: "1",
+    recipient: accounts.recipient.address,
   });
   const credentialStr = await clientMethod.createCredential({
     challenge,
