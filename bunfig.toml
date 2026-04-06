@@ -1,4 +1,5 @@
 [install]
+ignoreScripts = true
 minimumReleaseAge = 259200
 
 [test]
