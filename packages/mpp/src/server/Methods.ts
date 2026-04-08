@@ -1,4 +1,3 @@
-import type { Method } from "mppx";
 import { charge as charge_ } from "./Charge.js";
 
 /**
@@ -16,7 +15,7 @@ import { charge as charge_ } from "./Charge.js";
  */
 export function monad(
   parameters?: monad.Parameters,
-): readonly [Method.AnyServer] {
+): readonly [ReturnType<typeof charge_>] {
   return [monad.charge(parameters)] as const;
 }
 

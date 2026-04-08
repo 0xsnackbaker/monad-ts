@@ -32,7 +32,7 @@ import type { MaybePromise } from "../types.js";
  * })
  * ```
  */
-export function charge(parameters: charge.Parameters = {}): Method.AnyServer {
+export function charge(parameters: charge.Parameters = {}) {
   const {
     amount,
     currency = defaults.resolveCurrency(parameters),
