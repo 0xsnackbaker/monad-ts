@@ -58,14 +58,14 @@ export function charge(parameters: charge.Parameters = {}): Method.AnyServer {
       : parameters.account
     : undefined;
 
-  const resolveClient = (
+  const resolveClient = async (
     chainId?: number | undefined,
-  ): MaybePromise<Client> => {
+  ): Promise<Client> => {
     if (parameters.getClient) return parameters.getClient({ chainId });
     const id = chainId ?? defaults.chainId.mainnet;
     const url = defaults.rpcUrl[id];
     if (!url) throw new Error(`No RPC URL configured for chainId ${id}.`);
-    const { createClient, http } = require("viem") as typeof import("viem");
+    const { createClient, http } = await import("viem");
     return createClient({ chain: { id } as Chain, transport: http(url) });
   };
 
