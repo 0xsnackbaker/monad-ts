@@ -1,6 +1,6 @@
 {
   "name": "@monad-crypto/mpp",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Monad payment method for the Machine Payments Protocol",
   "repository": {
     "type": "git",
