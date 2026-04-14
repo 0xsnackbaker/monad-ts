@@ -1,5 +1,12 @@
 # @monad-crypto/mpp
 
+## 0.0.3
+
+### Patch Changes
+
+- 993f4a6: Fixed package exports resolution.
+- 72e7710: Fixed `require()`, replaced with dynamic `import()` for ESM compatibility.
+
 ## 0.0.2
 
 ### Patch Changes
